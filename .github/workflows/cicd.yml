@@ -9,16 +9,16 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    # 1️⃣ Checkout Repository
+    # 1️⃣ Checkout repository
     - uses: actions/checkout@v4
 
-    # 2️⃣ Build Docker Image
+    # 2️⃣ Build Docker image
     - name: Build Docker Image
       shell: powershell
       run: |
         docker build -t backend-airnb .
 
-    # 3️⃣ Stop Old Container (if exists)
+    # 3️⃣ Stop old container safely (if exists)
     - name: Stop old container safely
       shell: powershell
       run: |
@@ -27,7 +27,7 @@ jobs:
             docker stop backend-airnb
         }
 
-    # 4️⃣ Remove Old Container (if exists)
+    # 4️⃣ Remove old container safely (if exists)
     - name: Remove old container safely
       shell: powershell
       run: |
@@ -36,8 +36,8 @@ jobs:
             docker rm backend-airnb
         }
 
-    # 5️⃣ Run New Container
+    # 5️⃣ Run new container WITH .env file
     - name: Run new container
       shell: powershell
       run: |
-        docker run -d -p 3000:3000 --name backend-airnb backend-airnb
+        docker run -d -p 3000:3000 --env-file .env --name backend-airnb backend-airnb
