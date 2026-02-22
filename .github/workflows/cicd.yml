@@ -1,4 +1,4 @@
-name: Node.js CI
+name: Docker CI Deployment
 
 on:
   push:
@@ -8,48 +8,39 @@ jobs:
   build:
     runs-on: self-hosted
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
-
     steps:
-    # 1️⃣ Checkout repo
+    # 1️⃣ Checkout Repository
     - uses: actions/checkout@v4
 
-    # 2️⃣ Backup .env
+    # 2️⃣ Backup .env (if exists)
     - name: Backup .env
       shell: powershell
       run: |
         if (!(Test-Path -Path .\temp)) { New-Item -ItemType Directory -Path .\temp }
-        if (Test-Path .\.env) { Move-Item .\.env .\temp\env_backup }
+        if (Test-Path .\.env) { Move-Item .\.env .\temp\env_backup -Force }
 
-    # 3️⃣ Restore .env
+    # 3️⃣ Restore .env (if exists)
     - name: Restore .env
       shell: powershell
       run: |
-        if (Test-Path .\temp\env_backup) { Move-Item .\temp\env_backup .\.env }
+        if (Test-Path .\temp\env_backup) { Move-Item .\temp\env_backup .\.env -Force }
 
-    # 4️⃣ Setup Node.js
-    - uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
+    # 4️⃣ Build Docker Image
+    - name: Build Docker Image
+      run: docker build -t backend-airnb .
 
-    # 5️⃣ Install dependencies
-    - run: npm ci
-      shell: powershell
-
-    # 6️⃣ Build project
-    - run: npm run build --if-present
-      shell: powershell
-
-    # 7️⃣ Restart backend via PM2
-    - name: Restart backend via PM2
+    # 5️⃣ Stop Old Container (if running)
+    - name: Stop old container
       shell: powershell
       run: |
-        try {
-            pm2 restart backend
-        } catch {
-            npm install -g pm2
-            pm2 start backend
-        }
+        docker stop backend-airnb 2>$null
+
+    # 6️⃣ Remove Old Container (if exists)
+    - name: Remove old container
+      shell: powershell
+      run: |
+        docker rm backend-airnb 2>$null
+
+    # 7️⃣ Run New Container
+    - name: Run new container
+      run: docker run -d -p 3000:3000 --name backend-airnb backend-airnb
