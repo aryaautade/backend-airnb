@@ -5,42 +5,39 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  deploy:
     runs-on: self-hosted
 
     steps:
     # 1️⃣ Checkout Repository
     - uses: actions/checkout@v4
 
-    # 2️⃣ Backup .env (if exists)
-    - name: Backup .env
-      shell: powershell
-      run: |
-        if (!(Test-Path -Path .\temp)) { New-Item -ItemType Directory -Path .\temp }
-        if (Test-Path .\.env) { Move-Item .\.env .\temp\env_backup -Force }
-
-    # 3️⃣ Restore .env (if exists)
-    - name: Restore .env
-      shell: powershell
-      run: |
-        if (Test-Path .\temp\env_backup) { Move-Item .\temp\env_backup .\.env -Force }
-
-    # 4️⃣ Build Docker Image
+    # 2️⃣ Build Docker Image
     - name: Build Docker Image
-      run: docker build -t backend-airnb .
-
-    # 5️⃣ Stop Old Container (if running)
-    - name: Stop old container
       shell: powershell
       run: |
-        docker stop backend-airnb 2>$null
+        docker build -t backend-airnb .
 
-    # 6️⃣ Remove Old Container (if exists)
-    - name: Remove old container
+    # 3️⃣ Stop Old Container (if exists)
+    - name: Stop old container safely
       shell: powershell
       run: |
-        docker rm backend-airnb 2>$null
+        $container = docker ps -a --format "{{.Names}}" | Select-String "backend-airnb"
+        if ($container) {
+            docker stop backend-airnb
+        }
 
-    # 7️⃣ Run New Container
+    # 4️⃣ Remove Old Container (if exists)
+    - name: Remove old container safely
+      shell: powershell
+      run: |
+        $container = docker ps -a --format "{{.Names}}" | Select-String "backend-airnb"
+        if ($container) {
+            docker rm backend-airnb
+        }
+
+    # 5️⃣ Run New Container
     - name: Run new container
-      run: docker run -d -p 3000:3000 --name backend-airnb backend-airnb
+      shell: powershell
+      run: |
+        docker run -d -p 3000:3000 --name backend-airnb backend-airnb
