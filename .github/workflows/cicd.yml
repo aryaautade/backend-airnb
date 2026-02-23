@@ -22,22 +22,17 @@ jobs:
     - name: Stop old container safely
       shell: powershell
       run: |
-        $container = docker ps -a --format "{{.Names}}" | Select-String "backend-airnb"
-        if ($container) {
-            docker stop backend-airnb
-        }
+        docker stop backend-airnb 2>$null
+        docker rm backend-airnb 2>$null
 
-    # 4️⃣ Remove old container safely (if exists)
-    - name: Remove old container safely
-      shell: powershell
-      run: |
-        $container = docker ps -a --format "{{.Names}}" | Select-String "backend-airnb"
-        if ($container) {
-            docker rm backend-airnb
-        }
-
-    # 5️⃣ Run new container WITH .env file
+    # 4️⃣ Run new container with GitHub Secrets
     - name: Run new container
       shell: powershell
       run: |
-        docker run -d -p 3000:3000 --env-file .env --name backend-airnb backend-airnb
+        docker run -d -p 3000:3000 `
+          -e CLOUD_NAME="${{ secrets.CLOUD_NAME }}" `
+          -e CLOUD_API_KEY="${{ secrets.CLOUD_API_KEY }}" `
+          -e CLOUD_API_SECRET="${{ secrets.CLOUD_API_SECRET }}" `
+          -e ATLASDB_URL="${{ secrets.ATLASDB_URL }}" `
+          -e SECRET="${{ secrets.SECRET }}" `
+          --name backend-airnb backend-airnb
