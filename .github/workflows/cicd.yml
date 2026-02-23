@@ -12,20 +12,22 @@ jobs:
     # 1️⃣ Checkout repository
     - uses: actions/checkout@v4
 
-    # 2️⃣ Build Docker image
+    # 2️⃣ Build Docker Image
     - name: Build Docker Image
       shell: powershell
       run: |
         docker build -t backend-airnb .
 
-    # 3️⃣ Stop old container safely (if exists)
-    - name: Stop old container safely
+    # 3️⃣ Stop & Remove Old Container (Safe)
+    - name: Stop and Remove old container safely
       shell: powershell
       run: |
-        docker stop backend-airnb 2>$null
-        docker rm backend-airnb 2>$null
+        if (docker ps -a --format "{{.Names}}" | Select-String "backend-airnb") {
+            docker stop backend-airnb
+            docker rm backend-airnb
+        }
 
-    # 4️⃣ Run new container with GitHub Secrets
+    # 4️⃣ Run New Container with GitHub Secrets
     - name: Run new container
       shell: powershell
       run: |
